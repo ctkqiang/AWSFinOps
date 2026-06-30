@@ -28,7 +28,7 @@ func StartLocalServer(budgetState *billing.BudgetState) error {
 	utilities.LogStart(serverComponent, "StartLocalServer")
 
 	host := envOrDefault("APP_HOST", "0.0.0.0")
-	port := envOrDefault("APP_PORT", "8080")
+	port := envOrDefault("APP_PORT", "8888")
 	addr := fmt.Sprintf("%s:%s", host, port)
 
 	mux := http.NewServeMux()
