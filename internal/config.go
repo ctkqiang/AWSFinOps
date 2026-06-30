@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
 	"time"
 
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
@@ -35,42 +34,41 @@ var requiredKeys = []string{
 	"AWS_SECRET_ACCESS_KEY",
 }
 
-// IsRunInAWS 检测当前进程是否运行在 AWS 环境中。
-//
-// 判断依据（满足任一即为 true）：
-//   - 环境变量 IS_AWS 设为 "true" 或 "1"
-//   - 存在 AWS_LAMBDA_FUNCTION_NAME（Lambda 运行时自动注入）
-//   - 存在 ECS_CONTAINER_METADATA_URI（ECS Fargate 自动注入）
+// IsRunInAWS 委托 utilities.IsRunInAWS，保持 package internal 的公开 API 不变。
 //
 // 返回：
 //   - bool : 在 AWS 环境中返回 true，否则返回 false
 func IsRunInAWS() bool {
-	v := strings.ToLower(strings.TrimSpace(os.Getenv("IS_AWS")))
-	if v == "true" || v == "1" {
-		return true
-	}
-	if os.Getenv("AWS_LAMBDA_FUNCTION_NAME") != "" {
-		return true
-	}
-	if os.Getenv("ECS_CONTAINER_METADATA_URI") != "" {
-		return true
-	}
-	return false
+	return utilities.IsRunInAWS()
 }
 
-// AWSRegion 返回当前使用的 AWS 区域。
-// 优先读取环境变量 AWS_REGION，未配置时使用传入的 fallback 默认值。
+// AWSRegion 委托 utilities.AWSRegion，保持 package internal 的公开 API 不变。
 //
 // 参数：
-//   - fallback : 环境变量未设置时使用的默认区域（如 "ap-east-1"）
+//   - fallback : 环境变量未设置时使用的默认区域
 //
 // 返回：
 //   - string : AWS 区域标识符
 func AWSRegion(fallback string) string {
-	if region := os.Getenv("AWS_REGION"); region != "" {
-		return region
-	}
-	return fallback
+	return utilities.AWSRegion(fallback)
+}
+
+// IsLocalMode 委托 utilities.IsLocalMode，保持 package internal 的公开 API 不变。
+//
+// 返回：
+//   - true  : 未检测到任何云运行时，处于本地开发模式
+//   - false : 检测到至少一种云运行时
+func IsLocalMode() bool {
+	return utilities.IsLocalMode()
+}
+
+// ResolveDBEnvironment 委托 utilities.ResolveDBEnvironment，保持 package internal 的公开 API 不变。
+//
+// 返回：
+//   - utilities.DBEnvironment : 解析出的数据库环境类型
+//   - error                   : 云环境中凭证缺失或无效时返回错误
+func ResolveDBEnvironment() (utilities.DBEnvironment, error) {
+	return utilities.ResolveDBEnvironment()
 }
 
 // GetEnvValue 读取指定环境变量的值。
