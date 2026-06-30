@@ -603,6 +603,21 @@ func (e *Engine) exportReport(report *WorkerReport) {
 		fmt.Sprintf("files=%d", len(paths)),
 		fmt.Sprintf("paths=%s", strings.Join(paths, ",")),
 	)
+
+	// 根据 .env 配置自动广播到已启用的平台
+	if !envBool("BROADCAST_ENABLED", true) {
+		utilities.LogProgress(component, "ExportReport",
+			"广播已禁用（BROADCAST_ENABLED=false）",
+		)
+		return
+	}
+
+	sentPlatforms := services.BroadcastReport(data, paths)
+	if len(sentPlatforms) > 0 {
+		utilities.LogProgress(component, "ExportReport",
+			fmt.Sprintf("报告已发送至: %s", strings.Join(sentPlatforms, ", ")),
+		)
+	}
 }
 
 // envString 读取字符串类型的环境变量，未设置或为空时返回默认值。

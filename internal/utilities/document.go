@@ -100,6 +100,49 @@ func DefaultExportConfig() ExportConfig {
 	}
 }
 
+// cleanOldReports 清理输出目录中旧的 FinOps 报告文件（PDF/JSON/CSV）。
+// 在生成新报告之前调用，确保目录中只保留最新一次运行的报告。
+//
+// 参数：
+//   - outputDir : 报告输出目录
+func cleanOldReports(outputDir string) {
+	entries, err := os.ReadDir(outputDir)
+	if err != nil {
+		LogWarn(documentComponent, "cleanOldReports",
+			fmt.Sprintf("读取目录失败，跳过清理: %v", err),
+			0,
+		)
+		return
+	}
+
+	cleaned := 0
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		if strings.HasPrefix(name, "finops_report_") &&
+			(strings.HasSuffix(name, ".pdf") ||
+				strings.HasSuffix(name, ".json") ||
+				strings.HasSuffix(name, ".csv")) {
+			if err := os.Remove(filepath.Join(outputDir, name)); err != nil {
+				LogWarn(documentComponent, "cleanOldReports",
+					fmt.Sprintf("删除旧文件失败 %s: %v", name, err),
+					0,
+				)
+				continue
+			}
+			cleaned++
+		}
+	}
+
+	if cleaned > 0 {
+		LogProgress(documentComponent, "cleanOldReports",
+			fmt.Sprintf("已清理 %d 个旧报告文件", cleaned),
+		)
+	}
+}
+
 // ExportAll 根据配置依次导出 PDF / JSON / CSV 三种格式的报告。
 // 任意一种格式导出失败不会影响其余格式的导出。
 //
@@ -135,6 +178,8 @@ func ExportAll(data *ReportData, cfg *ExportConfig) ([]string, error) {
 		LogError(documentComponent, "ExportAll", err, time.Since(start), "step=mkdir")
 		return nil, fmt.Errorf("创建输出目录失败: %w", err)
 	}
+
+	cleanOldReports(c.OutputDir)
 
 	var paths []string
 	var errs []string
@@ -350,7 +395,7 @@ func drawExecutiveSummary(pdf *fpdf.Fpdf, data *ReportData) {
 	pdf.CellFormat(30, 7, fmt.Sprintf("%d", len(data.Steps)), "", 0, "L", false, 0, "")
 	pdf.Ln(9)
 
-	ok, pending, warned, failed := countStepStatuses(data.Steps)
+	ok, pending, warned, failed := CountStepStatuses(data.Steps)
 
 	pdf.SetX(pdfMarginLeft + 6)
 	pdf.SetFont(fontFamily, "", 10)
@@ -530,7 +575,7 @@ func ExportAsJSON(data *ReportData, filePath string) error {
 		GeneratedAt   string     `json:"generated_at"`
 	}
 
-	ok, pending, warned, failed := countStepStatuses(data.Steps)
+	ok, pending, warned, failed := CountStepStatuses(data.Steps)
 
 	steps := make([]jsonStep, len(data.Steps))
 	for i, s := range data.Steps {
@@ -634,7 +679,7 @@ func ExportAsCSV(data *ReportData, filePath string) error {
 		return fmt.Errorf("CSV 元数据头写入失败: %w", err)
 	}
 
-	ok, pending, warned, failed := countStepStatuses(data.Steps)
+	ok, pending, warned, failed := CountStepStatuses(data.Steps)
 	metaValues := []string{
 		data.RunID,
 		data.AWSAccountID,
@@ -711,8 +756,8 @@ type stepCounts struct {
 	Fail    int `json:"fail"`
 }
 
-// countStepStatuses 统计各状态的步骤数量。
-func countStepStatuses(steps []ReportStepData) (ok, pending, warned, failed int) {
+// CountStepStatuses 统计各状态的步骤数量。
+func CountStepStatuses(steps []ReportStepData) (ok, pending, warned, failed int) {
 	for _, s := range steps {
 		switch s.Status {
 		case "ok":
