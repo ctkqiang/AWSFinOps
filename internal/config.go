@@ -83,9 +83,9 @@ func ResolveDBEnvironment() (utilities.DBEnvironment, error) {
 func GetEnvValue(key string) (string, error) {
 	value := os.Getenv(key)
 	if value == "" {
-		return "", fmt.Errorf("environment variable %q is not set or empty", key)
+		return "", fmt.Errorf("环境变量 %q 未设置或为空", key)
 	}
-	utilities.Debug("env loaded: %s=%s", key, utilities.Mask(value))
+	utilities.Debug("环境变量已加载: %s=%s", key, utilities.Mask(value))
 	return value, nil
 }
 

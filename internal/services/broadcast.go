@@ -69,7 +69,7 @@ func TelegramGetBotFather() string {
 		return ""
 	}
 
-	utilities.Info("Telegram getUpdates URL built (token=%s)", utilities.Mask(token))
+	utilities.Info("Telegram getUpdates URL 已构建 (token=%s)", utilities.Mask(token))
 	return fmt.Sprintf("%s/bot%s/getUpdates", telegramBaseURL, token)
 }
 
@@ -106,8 +106,8 @@ func TelegramSendMessage(text string) error {
 
 	data, err := json.Marshal(msg)
 	if err != nil {
-		utilities.Error("TelegramSendMessage: failed to marshal payload: %v", err)
-		return fmt.Errorf("TelegramSendMessage: marshal: %w", err)
+		utilities.Error("TelegramSendMessage: 序列化消息体失败: %v", err)
+		return fmt.Errorf("TelegramSendMessage: 序列化失败: %w", err)
 	}
 
 	url := fmt.Sprintf("%s/bot%s/sendMessage", telegramBaseURL, token)
@@ -120,7 +120,7 @@ func TelegramSendMessage(text string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		err := fmt.Errorf("telegram API returned %s", resp.Status)
+		err := fmt.Errorf("Telegram API 返回状态码 %s", resp.Status)
 		utilities.LogError("Telegram", "SendMessage", err, time.Since(start))
 		return err
 	}

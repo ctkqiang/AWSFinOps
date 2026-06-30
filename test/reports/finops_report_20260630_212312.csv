@@ -1,0 +1,10 @@
+﻿report_run_id,aws_account_id,overall_status,start_time,end_time,duration_ms,total_steps,steps_ok,steps_pending,steps_warn,steps_fail,summary
+finops-20260630-212312,,completed,2026-06-30T21:23:12+08:00,2026-06-30T21:23:12+08:00,0,6,1,5,0,0,"[finops-20260630-212312] 执行完成: 共 6 步, 成功 1, 待实现 5, 警告 0, 失败 0, 耗时 1ms"
+
+step_index,step_name,step_status,step_status_label,step_duration_ms,step_duration,step_message,step_error
+1,check_budget,ok,OK,0,64us,预算: 500.00 USD (COST),
+2,get_cost,pending_implementation,PENDING,0,83us,成本查询（2026-05-31 ~ 2026-06-30）待接入 AWS Cost Explorer SDK,
+3,get_forecast,pending_implementation,PENDING,0,76us,成本预测（2026-06-30 ~ 2026-07-30）待接入 AWS Cost Explorer SDK,
+4,compare_usage,pending_implementation,PENDING,0,82us,用量对比（当前: 2026-05-31~2026-06-30 vs 上期: 2026-05-01~2026-05-31）待接入 AWS SDK,
+5,get_rightsizing,pending_implementation,PENDING,0,49us,EC2 规格优化建议待接入 AWS Cost Explorer SDK,
+6,run_analysis,pending_implementation,PENDING,0,86us,综合成本分析报告待实现,
