@@ -1,0 +1,60 @@
+graph TB
+    subgraph "触发层"
+        EB[EventBridge<br/>每 6 小时触发]
+        LOCAL[本地开发模式<br/>time.Ticker 循环]
+    end
+
+    subgraph "执行层 (Lambda / 本地进程)"
+        MAIN[main.go<br/>入口与信号处理]
+        CONFIG[配置加载器<br/>internal/config.go]
+        ENGINE[Worker 引擎<br/>internal/worker/engine.go]
+    end
+
+    subgraph "数据层 (AWS Services)"
+        CE[Cost Explorer API<br/>成本/预测/用量]
+        BUDGET[AWS Budgets API<br/>预算管理]
+        RS[Rightsizing API<br/>规格优化建议]
+    end
+
+    subgraph "输出层"
+        subgraph "报告导出"
+            PDF[PDF 报告<br/>高管用，带水印]
+            JSON[JSON 报告<br/>开发者用]
+            CSV[CSV 报告<br/>财务用]
+        end
+        subgraph "归档存储"
+            S3GLACIER[S3 Glacier<br/>历史报告归档]
+        end
+        subgraph "多平台广播"
+            WX[企业微信]
+            FEISHU[飞书]
+            DD[钉钉]
+            EMAIL[Email]
+            SLACK[Slack]
+            TG[Telegram]
+            DC[Discord]
+        end
+    end
+
+    EB --> MAIN
+    LOCAL --> MAIN
+    MAIN --> CONFIG
+    MAIN --> ENGINE
+    CONFIG --> S3ENV[(S3 .env 文件)]
+    CONFIG --> SM[(Secrets Manager)]
+    ENGINE --> CE
+    ENGINE --> BUDGET
+    ENGINE --> RS
+    ENGINE --> PDF
+    ENGINE --> JSON
+    ENGINE --> CSV
+    PDF --> S3GLACIER
+    JSON --> S3GLACIER
+    CSV --> S3GLACIER
+    ENGINE --> WX
+    ENGINE --> FEISHU
+    ENGINE --> DD
+    ENGINE --> EMAIL
+    ENGINE --> SLACK
+    ENGINE --> TG
+    ENGINE --> DC

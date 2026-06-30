@@ -1,0 +1,17 @@
+flowchart TD
+    subgraph "PDF 页面布局 (A4 纵向)"
+        HEADER[页眉<br/>AWSFinOps · RunID]
+        TITLE[标题页<br/>AWS FinOps 执行报告]
+        WATERMARK[水印层<br/>AWS Account ID 斜向 45°]
+        SUMMARY[执行摘要面板<br/>状态 / 耗时 / 步骤统计]
+        TABLE[步骤明细表格<br/>彩色状态 / 斑马纹 / 自动换行]
+        FOOTER[页脚<br/>第 X 页 / 共 Y 页 · 生成时间]
+    end
+
+    WATERMARK -.-> TITLE
+    WATERMARK -.-> SUMMARY
+    WATERMARK -.-> TABLE
+    HEADER --> TITLE
+    TITLE --> SUMMARY
+    SUMMARY --> TABLE
+    TABLE --> FOOTER

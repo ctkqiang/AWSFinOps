@@ -1,0 +1,42 @@
+flowchart LR
+    subgraph "企业微信 Weixin"
+        A1[WEIXIN_BOT_TOKEN<br/>且非空]
+        A2[WEIXIN_CHAT_ID<br/>且非空]
+        A1 & A2 --> WX_OK[启用]
+    end
+
+    subgraph "飞书 Feishu"
+        B1[FEISHU_BOT_TOKEN]
+        B2[FEISHU_CHAT_ID]
+        B1 & B2 --> F_OK[启用]
+    end
+
+    subgraph "钉钉 DingDing"
+        C1[DINGTALK_BOT_TOKEN]
+        C2[DINGTALK_SECRET]
+        C1 & C2 --> D_OK[启用]
+    end
+
+    subgraph "Email"
+        D1[SMTP_HOST]
+        D2[SMTP_TO]
+        D1 & D2 --> E_OK[启用]
+    end
+
+    subgraph "Slack"
+        E1[SLACK_BOT_TOKEN]
+        E2[SLACK_CHANNEL_ID]
+        E1 & E2 --> S_OK[启用]
+    end
+
+    subgraph "Telegram"
+        F1[TELEGRAM_BOT_TOKEN]
+        F2[TELEGRAM_CHAT_ID]
+        F1 & F2 --> T_OK[启用]
+    end
+
+    subgraph "Discord"
+        G1[DISCORD_BOT_TOKEN]
+        G2[DISCORD_CHANNEL_ID]
+        G1 & G2 --> DC_OK[启用]
+    end

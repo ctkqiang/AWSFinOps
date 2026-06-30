@@ -1,0 +1,69 @@
+flowchart TD
+    START([开始<br/>RunID 生成]) --> STEP1
+
+    subgraph "Step 1: 预算检查"
+        STEP1[check_budget]
+        STEP1 --> B1{预算是否<br/>超阈值?}
+        B1 -->|是| W1[记录 WARN<br/>触发告警]
+        B1 -->|否| OK1[记录 OK]
+    end
+
+    subgraph "Step 2: 成本查询"
+        STEP2[get_cost<br/>过去 30 天成本]
+        STEP2 --> CE1{Cost Explorer<br/>是否已接入?}
+        CE1 -->|否| P2[PENDING_IMPLEMENTATION]
+        CE1 -->|是| OK2[返回成本数据]
+    end
+
+    subgraph "Step 3: 成本预测"
+        STEP3[get_forecast<br/>未来 30 天预测]
+        STEP3 --> CE2{Cost Explorer<br/>是否已接入?}
+        CE2 -->|否| P3[PENDING_IMPLEMENTATION]
+        CE2 -->|是| OK3[返回预测数据]
+    end
+
+    subgraph "Step 4: 用量对比"
+        STEP4[compare_usage<br/>本期 vs 上期]
+        STEP4 --> CE3{数据是否<br/>充足?}
+        CE3 -->|否| P4[PENDING_IMPLEMENTATION]
+        CE3 -->|是| OK4[生成对比报告]
+    end
+
+    subgraph "Step 5: 规格优化"
+        STEP5[get_rightsizing<br/>EC2 规格优化建议]
+        STEP5 --> CE4{Cost Explorer<br/>是否已接入?}
+        CE4 -->|否| P5[PENDING_IMPLEMENTATION]
+        CE4 -->|是| OK5[返回优化建议]
+    end
+
+    subgraph "Step 6: 综合分析"
+        STEP6[run_analysis<br/>综合成本分析报告]
+        STEP6 --> ANA{分析逻辑<br/>是否已实现?}
+        ANA -->|否| P6[PENDING_IMPLEMENTATION]
+        ANA -->|是| OK6[生成分析摘要]
+    end
+
+    subgraph "Step 7: 广播通知"
+        STEP7[broadcast<br/>多平台通知]
+        STEP7 --> BRD{平台是否配置?}
+        BRD -->|否| W7[WARN: 跳过]
+        BRD -->|是| OK7[发送报告]
+    end
+
+    subgraph "收尾"
+        EXPORT[导出 PDF/JSON/CSV]
+        ARCHIVE[S3 Glacier 归档旧报告]
+        REPORT[生成结构化执行报告]
+        END([结束])
+    end
+
+    W1 & OK1 --> STEP2
+    P2 & OK2 --> STEP3
+    P3 & OK3 --> STEP4
+    P4 & OK4 --> STEP5
+    P5 & OK5 --> STEP6
+    P6 & OK6 --> STEP7
+    W7 & OK7 --> EXPORT
+    EXPORT --> ARCHIVE
+    ARCHIVE --> REPORT
+    REPORT --> END

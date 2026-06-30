@@ -1,0 +1,15 @@
+flowchart LR
+    subgraph "exportReport() 流程"
+        A[收集旧报告文件] --> B{S3_ARCHIVE_BUCKET<br/>是否配置?}
+        B -->|是| C[上传到 S3 Glacier]
+        B -->|否| D[跳过归档]
+        C --> E[清理本地旧文件]
+        D --> E
+        E --> F[生成新 PDF]
+        E --> G[生成新 JSON]
+        E --> H[生成新 CSV]
+        F & G & H --> I{广播是否启用?}
+        I -->|是| J[发送到已配置平台]
+        I -->|否| K[结束]
+        J --> K
+    end

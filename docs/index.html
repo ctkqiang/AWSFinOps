@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AWSFinOps Worker - 云成本优化引擎</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --primary: #ff9900;
+    --primary-dark: #e88b00;
+    --primary-light: #ffb84d;
+    --accent: #232f3e;
+    --accent-light: #37475a;
+    --success: #2ecc71;
+    --warning: #f39c12;
+    --danger: #e74c3c;
+    --info: #3498db;
+    --bg: #f8f9fc;
+    --bg-card: #ffffff;
+    --text: #2c3e50;
+    --text-light: #6c7a89;
+    --text-muted: #95a5a6;
+    --border: #e8ecf1;
+    --shadow-sm: 0 2px 8px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.06);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.08);
+    --shadow-xl: 0 16px 48px rgba(0,0,0,0.1);
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .hero {
+    background: linear-gradient(135deg, var(--accent) 0%, #1a2533 50%, var(--accent-light) 100%);
+    color: #fff;
+    padding: 100px 40px 120px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(255,153,0,0.15) 0%, transparent 70%);
+    border-radius: 50%;
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .hero::after {
+    content: '';
+    position: absolute;
+    bottom: -30%;
+    left: -10%;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(52,152,219,0.1) 0%, transparent 70%);
+    border-radius: 50%;
+    animation: float 8s ease-in-out infinite reverse;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-20px); }
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .hero-badge {
+    display: inline-block;
+    padding: 6px 18px;
+    background: rgba(255,153,0,0.2);
+    border: 1px solid rgba(255,153,0,0.4);
+    border-radius: 50px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--primary-light);
+    margin-bottom: 24px;
+    letter-spacing: 0.5px;
+  }
+
+  .hero h1 {
+    font-size: 52px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    letter-spacing: -1px;
+    background: linear-gradient(135deg, #fff 0%, var(--primary-light) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero p {
+    font-size: 18px;
+    color: rgba(255,255,255,0.75);
+    max-width: 650px;
+    margin: 0 auto 40px;
+    line-height: 1.8;
+  }
+
+  .hero-stats {
+    display: flex;
+    justify-content: center;
+    gap: 48px;
+    flex-wrap: wrap;
+  }
+
+  .stat-item {
+    text-align: center;
+  }
+
+  .stat-number {
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 4px;
+  }
+
+  .stat-label {
+    font-size: 13px;
+    color: rgba(255,255,255,0.6);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 40px;
+  }
+
+  .sidebar {
+    position: fixed;
+    left: 30px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 100;
+  }
+
+  .sidebar ul {
+    list-style: none;
+    border-left: 2px solid var(--border);
+    padding-left: 20px;
+  }
+
+  .sidebar li {
+    margin-bottom: 12px;
+  }
+
+  .sidebar a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    display: block;
+    padding: 4px 0;
+    position: relative;
+  }
+
+  .sidebar a:hover,
+  .sidebar a.active {
+    color: var(--primary);
+  }
+
+  .sidebar a.active::before {
+    content: '';
+    position: absolute;
+    left: -26px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 20px;
+    background: var(--primary);
+    border-radius: 3px;
+  }
+
+  section {
+    padding: 80px 0;
+  }
+
+  .section-header {
+    text-align: center;
+    margin-bottom: 60px;
+  }
+
+  .section-badge {
+    display: inline-block;
+    padding: 4px 14px;
+    background: rgba(255,153,0,0.1);
+    color: var(--primary-dark);
+    border-radius: 50px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 16px;
+  }
+
+  .section-header h2 {
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 16px;
+  }
+
+  .section-header p {
+    font-size: 16px;
+    color: var(--text-light);
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    padding: 32px;
+    transition: all 0.3s ease;
+    border: 1px solid var(--border);
+  }
+
+  .card:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-2px);
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+  }
+
+  .feature-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: 32px;
+    border: 1px solid var(--border);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary), var(--primary-light));
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+  }
+
+  .feature-card:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-4px);
+    border-color: transparent;
+  }
+
+  .feature-card:hover::before {
+    transform: scaleX(1);
+  }
+
+  .feature-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    margin-bottom: 20px;
+    background: linear-gradient(135deg, rgba(255,153,0,0.1), rgba(255,153,0,0.05));
+    color: var(--primary);
+  }
+
+  .feature-card h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+
+  .feature-card p {
+    font-size: 14px;
+    color: var(--text-light);
+    line-height: 1.7;
+  }
+
+  .diagram-container {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: 40px;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border);
+    margin-bottom: 32px;
+    overflow-x: auto;
+  }
+
+  .diagram-container img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+  }
+
+  .diagram-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .diagram-title::before {
+    content: '';
+    width: 4px;
+    height: 24px;
+    background: linear-gradient(180deg, var(--primary), var(--primary-light));
+    border-radius: 2px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    font-size: 14px;
+  }
+
+  thead {
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    color: #fff;
+  }
+
+  th {
+    padding: 16px 20px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  td {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  tbody tr {
+    background: var(--bg-card);
+    transition: background 0.2s ease;
+  }
+
+  tbody tr:hover {
+    background: #fafbfc;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  code {
+    font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace;
+    background: rgba(255,153,0,0.08);
+    color: var(--primary-dark);
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 13px;
+  }
+
+  pre {
+    background: var(--accent);
+    color: #e8ecf1;
+    padding: 24px;
+    border-radius: var(--radius-md);
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    box-shadow: var(--shadow-md);
+  }
+
+  pre code {
+    background: none;
+    color: inherit;
+    padding: 0;
+    font-size: 13px;
+  }
+
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    align-items: start;
+  }
+
+  .status-tag {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 50px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .status-ok { background: rgba(46,204,113,0.15); color: #27ae60; }
+  .status-warn { background: rgba(243,156,18,0.15); color: #d68910; }
+  .status-error { background: rgba(231,76,60,0.15); color: #c0392b; }
+  .status-pending { background: rgba(52,152,219,0.15); color: #2980b9; }
+  .status-skipped { background: rgba(149,165,166,0.15); color: #7f8c8d; }
+
+  .dir-tree {
+    background: var(--accent);
+    color: #e8ecf1;
+    padding: 24px;
+    border-radius: var(--radius-md);
+    font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.8;
+    box-shadow: var(--shadow-md);
+  }
+
+  .dir-tree .dir { color: var(--primary-light); font-weight: 600; }
+  .dir-tree .file { color: #bdc3c7; }
+  .dir-tree .comment { color: #7f8c8d; font-style: italic; }
+
+  footer {
+    background: var(--accent);
+    color: rgba(255,255,255,0.6);
+    text-align: center;
+    padding: 40px;
+    margin-top: 60px;
+  }
+
+  footer a {
+    color: var(--primary-light);
+    text-decoration: none;
+  }
+
+  .note-box {
+    background: linear-gradient(135deg, rgba(52,152,219,0.08), rgba(52,152,219,0.04));
+    border-left: 4px solid var(--info);
+    padding: 16px 20px;
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    margin: 20px 0;
+  }
+
+  .note-box strong {
+    color: var(--info);
+  }
+
+  .back-to-top {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 48px;
+    height: 48px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    box-shadow: var(--shadow-lg);
+    transition: all 0.3s ease;
+    z-index: 99;
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  .back-to-top.visible {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .back-to-top:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 24px rgba(255,153,0,0.3);
+  }
+
+  @media (max-width: 1400px) {
+    .sidebar { display: none; }
+  }
+
+  @media (max-width: 768px) {
+    .hero h1 { font-size: 32px; }
+    .hero p { font-size: 16px; }
+    .hero { padding: 60px 20px 80px; }
+    .container { padding: 0 20px; }
+    section { padding: 50px 0; }
+    .section-header h2 { font-size: 28px; }
+    .two-col { grid-template-columns: 1fr; }
+    .hero-stats { gap: 24px; }
+    .stat-number { font-size: 28px; }
+  }
+
+  .scroll-reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .scroll-reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+</style>
+</head>
+<body>
+
+<nav class="sidebar" id="sidebar">
+  <ul>
+    <li><a href="#overview" class="active">项目概述</a></li>
+    <li><a href="#architecture">系统架构</a></li>
+    <li><a href="#pipeline">核心流程</a></li>
+    <li><a href="#config">配置加载</a></li>
+    <li><a href="#report">报告与归档</a></li>
+    <li><a href="#broadcast">多平台广播</a></li>
+    <li><a href="#structure">目录结构</a></li>
+    <li><a href="#quickstart">快速开始</a></li>
+    <li><a href="#envvars">环境变量</a></li>
+    <li><a href="#deploy">部署架构</a></li>
+    <li><a href="#techstack">技术栈</a></li>
+  </ul>
+</nav>
+
+<a href="#top" class="back-to-top" id="backToTop">↑</a>
+
+<div id="top"></div>
+
+<header class="hero">
+  <div class="hero-content">
+    <div class="hero-badge">⚡ AWS Lambda · EventBridge 驱动</div>
+    <h1>AWSFinOps Worker</h1>
+    <p>基于 Go 语言构建的 AWS 云成本优化定时任务引擎，自动执行预算检查、成本分析、用量预测、规格优化建议，并支持多平台广播通知与报告归档。</p>
+    <div class="hero-stats">
+      <div class="stat-item">
+        <div class="stat-number">7</div>
+        <div class="stat-label">步流水线</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">3</div>
+        <div class="stat-label">报告格式</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">7</div>
+        <div class="stat-label">广播平台</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">3</div>
+        <div class="stat-label">层配置加载</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+
+<section id="overview">
+  <div class="section-header scroll-reveal">
+    <div class="section-badge">Overview</div>
+    <h2>项目概述</h2>
+    <p>AWSFinOps Worker 是一个无状态的定时任务工作器，在 AWS Lambda 中由 EventBridge 按计划触发，自动完成一整套云成本治理流程。</p>
+  </div>
+
+  <div class="features-grid">
+    <div class="feature-card scroll-reveal">
+      <div class="feature-icon">⚙️</div>
+      <h3>7 步流水线</h3>
+      <p>预算检查 → 成本查询 → 成本预测 → 用量对比 → 规格优化 → 综合分析 → 广播通知，全流程自动化。</p>
+    </div>
+    <div class="feature-card scroll-reveal">
+      <div class="feature-icon">🌐</div>
+      <h3>多环境支持</h3>
+      <p>本地循环模式模拟 EventBridge，配合 AWS Lambda 生产模式，开发与生产无缝切换。</p>
+    </div>
+    <div class="feature-card scroll-reveal">
+      <div class="feature-icon">📄</div>
+      <h3>3 种报告格式</h3>
+      <p>PDF（高管，带品牌水印）、JSON（开发者 API 集成）、CSV（财务数据分析），满足不同角色需求。</p>
+    </div>
+    <div class="feature-card scroll-reveal">
+      <div class="feature-icon">📢</div>
+      <h3>7 种广播平台</h3>
+      <p>企业微信、飞书、钉钉、Email、Slack、Telegram、Discord，自动检测配置并发送报告。</p>
+    </div>
+    <div class="feature-card scroll-reveal">
+      <div class="feature-icon">❄️</div>
+      <h3>S3 Glacier 归档</h3>
+      <p>旧报告自动归档到 Glacier 存储，存储成本极低，满足合规与历史数据追溯需求。</p>
+    </div>
+    <div class="feature-card scroll-reveal">
+      <div class="feature-icon">🔐</div>
+      <h3>3 层配置加载</h3>
+      <p>S3 .env → Secrets Manager → 系统环境变量，优先级递进，确保生产环境安全。</p>
+    </div>
+    <div class="feature-card scroll-reveal">
+      <div class="feature-icon">📊</div>
+      <h3>CloudWatch 结构化日志</h3>
+      <p>兼容 EMF 格式，原生支持 CloudWatch 监控与告警，无需额外配置。</p>
+    </div>
+  </div>
+</section>
+
+<section id="architecture">
+  <div class="section-header scroll-reveal">
+    <div class="section-badge">Architecture</div>
+    <h2>系统架构</h2>
+    <p>从触发到执行，从数据采集到输出分发，全链路清晰设计</p>
+  </div>
+
+  <div class="diagram-container scroll-reveal">
+    <div class="diagram-title">整体架构图</div>
+    <img src="diagrams/01-system-architecture.svg" alt="系统整体架构图">
+  </div>
+
+  <div class="diagram-container scroll-reveal">
+    <div class="diagram-title">模块依赖关系</div>
+    <img src="diagrams/02-module-dependency.svg" alt="模块依赖关系图">
+    <div class="note-box">
+      <strong>设计要点：</strong> <code>internal/aws</code> 包封装 AWS SDK 客户端，不反向依赖上层业务包，有效避免循环引用。
+    </div>
+  </div>
+</section>
+
+<section id="pipeline">
+  <div class="section-header scroll-reveal">
+    <div class="section-badge">Pipeline</div>
+    <h2>核心流程</h2>
+    <p>7 步流水线，任一步骤失败不中断后续流程，容错设计保障任务可靠执行</p>
+  </div>
+
+  <div class="diagram-container scroll-reveal">
+    <div class="diagram-title">Worker 执行流水线</div>
+    <img src="diagrams/03-worker-pipeline.svg" alt="Worker 执行流水线">
+  </div>
+
+  <div class="card scroll-reveal">
+    <div class="diagram-title">状态定义</div>
+    <table>
+      <thead>
+        <tr>
+          <th>状态</th>
+          <th>说明</th>
+          <th>对最终状态的影响</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="status-tag status-ok">ok</span></td>
+          <td>步骤执行成功</td>
+          <td>正常</td>
+        </tr>
+        <tr>
+          <td><span class="status-tag status-pending">pending_implementation</span></td>
+          <td>功能待实现（占位步骤）</td>
+          <td>不影响，不计入失败</td>
+        </tr>
+        <tr>
+          <td><span class="status-tag status-warn">warn</span></td>
+          <td>有警告但不致命</td>
+          <td>最终状态可能为 <code>partial_failure</code></td>
+        </tr>
+        <tr>
+          <td><span class="status-tag status-error">error</span></td>
+          <td>步骤执行失败</td>
+          <td>最终状态可能为 <code>error</code></td>
+        </tr>
+        <tr>
+          <td><span class="status-tag status-skipped">skipped</span></td>
+          <td>配置关闭，主动跳过</td>
+          <td>不影响</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="config">
+  <div class="section-header scroll-reveal">
+    <div class="section-badge">Configuration</div>
+    <h2>配置加载机制</h2>
+    <p>三层配置加载，安全优先，已存在的环境变量不会被覆盖</p>
+  </div>
+
+  <div class="two-col">
+    <div class="diagram-container scroll-reveal">
+      <div class="diagram-title">三层配置加载序列图</div>
+      <img src="diagrams/04-config-sequence.svg" alt="三层配置加载序列图">
+    </div>
+    <div class="diagram-container scroll-reveal">
+      <div class="diagram-title">优先级规则</div>
+      <img src="diagrams/05-config-priority.svg" alt="配置优先级规则">
+    </div>
+  </div>
+
+  <div class="note-box scroll-reveal" style="margin-top: 32px;">
+    <strong>核心原则：</strong>已存在于进程环境中的变量（如 Lambda IAM 注入的凭证）优先级最高，不会被 S3 或 Secrets Manager 覆盖。这保证了生产环境的安全性。
+  </div>
+</section>
+
+<section id="report">
+  <div class="section-header scroll-reveal">
+    <div class="section-badge">Reports</div>
+    <h2>报告导出与归档</h2>
+    <p>多格式报告输出，自动归档到 S3 Glacier，兼顾当下查阅与长期保存</p>
+  </div>
+
+  <div class="diagram-container scroll-reveal">
+    <div class="diagram-title">报告处理流程</div>
+    <img src="diagrams/06-report-export-flow.svg" alt="报告处理流程图">
+  </div>
+
+  <div class="two-col">
+    <div class="diagram-container scroll-reveal">
+      <div class="diagram-title">PDF 报告结构</div>
+      <img src="diagrams/07-pdf-structure.svg" alt="PDF 报告结构图">
+    </div>
+    <div class="card scroll-reveal">
+      <div class="diagram-title">报告格式对比</div>
+      <table>
+        <thead>
+          <tr>
+            <th>格式</th>
+            <th>受众</th>
+            <th>特点</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>PDF</strong></td>
+            <td>高管 / 管理层</td>
+            <td>精美排版、品牌水印、彩色表格</td>
+          </tr>
+          <tr>
+            <td><strong>JSON</strong></td>
+            <td>开发者 / API</td>
+            <td>结构化、schema_version、RFC3339</td>
+          </tr>
+          <tr>
+            <td><strong>CSV</strong></td>
+            <td>财务 / 数据分析</td>
+            <td>Excel 兼容（UTF-8 BOM）</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card scroll-reveal" style="margin-top: 32px;">
+    <div class="diagram-title">S3 Glacier 归档策略</div>
+    <table>
+      <thead>
+        <tr>
+          <th>存储类型</th>
+          <th>最低存储时长</th>
+          <th>取回费用</th>
+          <th>适用场景</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>GLACIER_IR</code>（默认）</td>
+          <td>90 天</td>
+          <td>低</td>
+          <td>历史报告快速检索</td>
+        </tr>
+        <tr>
+          <td><code>GLACIER</code></td>
+          <td>90 天</td>
+          <td>中</td>
+          <td>长期归档（分钟级取回）</td>
+        </tr>
+        <tr>
+          <td><code>DEEP_ARCHIVE</code></td>
+          <td>180 天</td>
+          <td>高</td>
+          <td>合规归档（小时级取回）</td>
+        </tr>
+        <tr>
+          <td><code>STANDARD_IA</code></td>
+          <td>30 天</td>
+          <td>最低</td>
+          <td>不常访问但需即时取回</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="broadcast">
+  <div class="section-header scroll-reveal">
+    <div class="section-badge">Broadcast</div>
+    <h2>多平台广播</h2>
+    <p>一次配置，多平台触达，自动检测启用状态，单平台失败不影响整体</p>
+  </div>
+
+  <div class="diagram-container scroll-reveal">
+    <div class="diagram-title">广播架构</div>
+    <img src="diagrams/08-broadcast-architecture.svg" alt="广播架构图">
+  </div>
+
+  <div class="diagram-container scroll-reveal">
+    <div class="diagram-title">平台启用检测规则</div>
+    <img src="diagrams/09-platform-detection.svg" alt="平台启用检测规则">
+  </div>
+
+  <div class="features-grid" style="margin-top: 32px;">
+    <div class="feature-card scroll-reveal">
+      <div class="feature-icon">🛡️</div>
+      <h3>容错设计</h3>
+      <p>单平台失败不影响其他平台，任意平台发送失败只记录 WARN，其他平台继续发送。</p>
+    </div>
+    <div class="feature-card scroll-reveal">
+      <div class="feature-icon">🎛️</div>
+      <h3>总开关控制</h3>
+      <p><code>BROADCAST_ENABLED=false</code> 可一键关闭所有广播，方便调试和维护。</p>
+    </div>
+    <div class="feature-card scroll-reveal">
+      <div class="feature-icon">🤫</div>
+      <h3>空平台静默跳过</h3>
+      <p>未配置任何平台时，静默跳过不报错，不污染日志也不影响主流程。</p>
+    </div>
+  </div>
+</section>
+
+<section id="structure">
+  <div class="section-header scroll-reveal">
+    <div class="section-badge">Structure</div>
+    <h2>目录结构</h2>
+    <p>清晰的模块划分，职责明确，易于扩展和维护</p>
+  </div>
+
+  <div class="dir-tree scroll-reveal">
+<pre>
+AWSFinOps/
+├── <span class="dir">main.go</span>                      <span class="comment"># 程序入口（本地循环 + Lambda 双模式）</span>
+├── go.mod                       <span class="comment"># Go 模块定义</span>
+├── .env.example                 <span class="comment"># 环境变量示例</span>
+├── LICENSE                      <span class="comment"># MIT 许可证</span>
+│
+├── <span class="dir">internal/</span>
+│   ├── <span class="file">config.go</span>                <span class="comment"># 三层配置加载器</span>
+│   │
+│   ├── <span class="dir">worker/</span>
+│   │   └── <span class="file">engine.go</span>            <span class="comment"># Worker 核心引擎（7 步流水线）</span>
+│   │
+│   ├── <span class="dir">archive/</span>
+│   │   └── <span class="file">s3.go</span>                <span class="comment"># S3 Glacier 归档服务</span>
+│   │
+│   ├── <span class="dir">aws/</span>                     <span class="comment"># AWS SDK 封装层</span>
+│   │   ├── <span class="file">lambda.go</span>            <span class="comment"># Lambda 事件处理器</span>
+│   │   ├── <span class="file">costexplorer.go</span>      <span class="comment"># Cost Explorer 数据模型</span>
+│   │   ├── <span class="file">rightsizing.go</span>       <span class="comment"># 规格优化数据模型</span>
+│   │   ├── <span class="file">budget.go</span>            <span class="comment"># Budgets API 封装</span>
+│   │   ├── <span class="file">billing.go</span>           <span class="comment"># 计费共享类型</span>
+│   │   └── <span class="file">s3.go</span>                <span class="comment"># S3 空壳（归档见 archive 包）</span>
+│   │
+│   ├── <span class="dir">billing/</span>                 <span class="comment"># 业务逻辑层</span>
+│   │   ├── <span class="file">budget.go</span>            <span class="comment"># BudgetState（线程安全预算状态）</span>
+│   │   ├── <span class="file">budget_management.go</span> <span class="comment"># 预算管理数据模型</span>
+│   │   └── <span class="file">analysis.go</span>          <span class="comment"># 成本分析报告</span>
+│   │
+│   ├── <span class="dir">services/</span>                <span class="comment"># 外部服务集成</span>
+│   │   ├── <span class="file">broadcast.go</span>         <span class="comment"># 多平台广播服务</span>
+│   │   └── <span class="file">handler.go</span>           <span class="comment"># 空壳（历史遗留）</span>
+│   │
+│   └── <span class="dir">utilities/</span>               <span class="comment"># 通用工具</span>
+│       ├── <span class="file">logger.go</span>            <span class="comment"># 结构化日志（CloudWatch EMF）</span>
+│       ├── <span class="file">document.go</span>          <span class="comment"># PDF/JSON/CSV 报告生成</span>
+│       ├── <span class="file">aws.go</span>               <span class="comment"># AWS 环境检测工具</span>
+│       └── <span class="dir">fonts/</span>
+│           └── <span class="file">NotoSansSC-Regular.ttf</span>  <span class="comment"># PDF 中文字体</span>
+│
+├── <span class="dir">test/</span>                        <span class="comment"># 集成测试</span>
+│   └── ...
+│
+├── <span class="dir">docs/</span>                        <span class="comment"># 项目文档</span>
+│   ├── <span class="file">index.html</span>             <span class="comment"># 本页面</span>
+│   └── <span class="dir">diagrams/</span>               <span class="comment"># 架构图表（SVG）</span>
+│
+└── <span class="dir">reports/</span>                     <span class="comment"># 运行时生成的报告（默认目录）</span>
+</pre>
+  </div>
+</section>
+
+<section id="quickstart">
+  <div class="section-header scroll-reveal">
+    <div class="section-badge">Quick Start</div>
+    <h2>快速开始</h2>
+    <p>几分钟内启动你的第一个 FinOps 任务</p>
+  </div>
+
+  <div class="card scroll-reveal">
+    <div class="diagram-title">前置条件</div>
+    <ul style="padding-left: 24px; color: var(--text-light); line-height: 2;">
+      <li>Go 1.26+</li>
+      <li>AWS 凭证（Access Key / IAM Role）</li>
+      <li>（可选）各广播平台的 Bot Token</li>
+    </ul>
+  </div>
+
+  <div class="card scroll-reveal" style="margin-top: 24px;">
+    <div class="diagram-title">安装与运行</div>
+    <pre><code># 1. 克隆仓库
+git clone &lt;repo-url&gt;
+cd AWSFinOps
+
+# 2. 配置环境变量
+cp .env.example .env
+# 编辑 .env，填入 AWS 凭证和所需配置
+
+# 3. 安装依赖
+go mod download
+
+# 4. 执行一次（调试模式）
+WORKER_ONCE=true go run .
+
+# 5. 循环模式（模拟 EventBridge，每 6 小时一次）
+go run .</code></pre>
+  </div>
+
+  <div class="card scroll-reveal" style="margin-top: 24px;">
+    <div class="diagram-title">运行示例输出</div>
+    <pre><code>{
+  "timestamp": "2026-06-30T21:57:35+08:00",
+  "level": "INFO",
+  "app": "AWSFinOps",
+  "component": "FinOpsWorker",
+  "operation": "Run",
+  "status": "success",
+  "elapsed": "1.234ms",
+  "message": "Worker 执行完成",
+  "extra": {
+    "run_id": "finops-20260630-215735-abc123",
+    "status": "partial_failure",
+    "steps": "7"
+  }
+}</code></pre>
+  </div>
+</section>
+
+<section id="envvars">
+  <div class="section-header scroll-reveal">
+    <div class="section-badge">Environment</div>
+    <h2>环境变量</h2>
+    <p>所有可配置项一览，灵活适配不同部署场景</p>
+  </div>
+
+  <div class="card scroll-reveal">
+    <div class="diagram-title">基础配置</div>
+    <table>
+      <thead>
+        <tr><th>变量名</th><th>默认值</th><th>说明</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>AWS_REGION</code></td><td><code>ap-east-1</code></td><td>AWS 区域</td></tr>
+        <tr><td><code>AWS_ACCESS_KEY_ID</code></td><td>-</td><td><strong>必填</strong> AWS Access Key</td></tr>
+        <tr><td><code>AWS_SECRET_ACCESS_KEY</code></td><td>-</td><td><strong>必填</strong> AWS Secret Key</td></tr>
+        <tr><td><code>AWS_ACCOUNT_ID</code></td><td>-</td><td>AWS 账号 ID（PDF 水印，大写）</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card scroll-reveal" style="margin-top: 24px;">
+    <div class="diagram-title">Worker 配置</div>
+    <table>
+      <thead>
+        <tr><th>变量名</th><th>默认值</th><th>说明</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>WORKER_INTERVAL</code></td><td><code>6h</code></td><td>本地模式循环间隔（支持 <code>30s</code>/<code>5m</code>/<code>6h</code> 格式）</td></tr>
+        <tr><td><code>WORKER_ONCE</code></td><td><code>false</code></td><td><code>true</code> = 执行一次后退出</td></tr>
+        <tr><td><code>IS_AWS</code></td><td>-</td><td>强制指定是否在 AWS 环境运行</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card scroll-reveal" style="margin-top: 24px;">
+    <div class="diagram-title">报告导出配置</div>
+    <table>
+      <thead>
+        <tr><th>变量名</th><th>默认值</th><th>说明</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>EXPORT_REPORT</code></td><td><code>true</code></td><td>是否启用报告导出</td></tr>
+        <tr><td><code>REPORT_OUTPUT_DIR</code></td><td><code>./reports</code></td><td>报告输出目录</td></tr>
+        <tr><td><code>EXPORT_PDF</code></td><td><code>true</code></td><td>是否导出 PDF</td></tr>
+        <tr><td><code>EXPORT_JSON</code></td><td><code>true</code></td><td>是否导出 JSON</td></tr>
+        <tr><td><code>EXPORT_CSV</code></td><td><code>true</code></td><td>是否导出 CSV</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card scroll-reveal" style="margin-top: 24px;">
+    <div class="diagram-title">S3 Glacier 归档配置</div>
+    <table>
+      <thead>
+        <tr><th>变量名</th><th>默认值</th><th>说明</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>S3_ARCHIVE_BUCKET</code></td><td>-</td><td>S3 Bucket 名称（不配置则不启用归档）</td></tr>
+        <tr><td><code>S3_ARCHIVE_REGION</code></td><td><code>ap-east-1</code></td><td>Bucket 所在区域</td></tr>
+        <tr><td><code>S3_ARCHIVE_STORAGE_CLASS</code></td><td><code>GLACIER_IR</code></td><td>存储类型</td></tr>
+        <tr><td><code>S3_ARCHIVE_PREFIX</code></td><td><code>finops-reports/</code></td><td>对象前缀</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="deploy">
+  <div class="section-header scroll-reveal">
+    <div class="section-badge">Deployment</div>
+    <h2>部署架构</h2>
+    <p>基于 AWS 无服务器架构，按需付费，自动扩缩容</p>
+  </div>
+
+  <div class="diagram-container scroll-reveal">
+    <div class="diagram-title">AWS 部署拓扑</div>
+    <img src="diagrams/10-deployment-topology.svg" alt="AWS 部署拓扑图">
+  </div>
+
+  <div class="card scroll-reveal" style="margin-top: 32px;">
+    <div class="diagram-title">IAM 权限策略</div>
+    <p style="margin-bottom: 16px; color: var(--text-light);">Lambda 执行角色所需的最小权限：</p>
+    <pre><code>{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ce:GetCostAndUsage",
+        "ce:GetCostForecast",
+        "ce:GetRightsizingRecommendation"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:CreateBucket",
+        "s3:PutBucketEncryption",
+        "s3:PutPublicAccessBlock"
+      ],
+      "Resource": [
+        "arn:aws:s3:::your-config-bucket/*",
+        "arn:aws:s3:::your-archive-bucket/*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:GetSecretValue"
+      ],
+      "Resource": "arn:aws:secretsmanager:region:account:secret:your-secret-*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": "arn:aws:logs:region:account:*"
+    }
+  ]
+}</code></pre>
+  </div>
+</section>
+
+<section id="techstack">
+  <div class="section-header scroll-reveal">
+    <div class="section-badge">Tech Stack</div>
+    <h2>技术栈</h2>
+    <p>精心挑选的技术组合，性能与可维护性并重</p>
+  </div>
+
+  <div class="features-grid">
+    <div class="feature-card scroll-reveal">
+      <div class="feature-icon">🐹</div>
+      <h3>Go 1.26+</h3>
+      <p>主编程语言，编译型语言，启动快、性能高，非常适合 Lambda 无服务器场景。</p>
+    </div>
+    <div class="feature-card scroll-reveal">
+      <div class="feature-icon">☁️</div>
+      <h3>AWS SDK v2</h3>
+      <p>官方 AWS SDK for Go v2，模块化设计，按需加载，包体积更小。</p>
+    </div>
+    <div class="feature-card scroll-reveal">
+      <div class="feature-icon">📕</div>
+      <h3>go-pdf/fpdf</h3>
+      <p>PDF 报告生成库，支持中文字体嵌入、水印、表格等高级排版功能。</p>
+    </div>
+    <div class="feature-card scroll-reveal">
+      <div class="feature-icon">🔧</div>
+      <h3>godotenv</h3>
+      <p>.env 文件解析，本地开发环境配置加载，简单可靠。</p>
+    </div>
+    <div class="feature-card scroll-reveal">
+      <div class="feature-icon">📝</div>
+      <h3>CloudWatch EMF</h3>
+      <p>自研结构化日志，兼容 CloudWatch Embedded Metric Format，原生支持指标提取。</p>
+    </div>
+    <div class="feature-card scroll-reveal">
+      <div class="feature-icon">🎯</div>
+      <h3>AWS Lambda</h3>
+      <p>无服务器运行时，按需付费，自动扩缩容，与 EventBridge 完美配合。</p>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<footer>
+  <p>
+    <a href="../LICENSE">MIT License</a> · AWSFinOps Worker
+  </p>
+  <p style="margin-top: 8px; font-size: 12px;">© 2026 AWSFinOps · 云成本优化引擎</p>
+</footer>
+
+<script>
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.scroll-reveal').forEach(el => {
+    observer.observe(el);
+  });
+
+  const backToTop = document.getElementById('backToTop');
+  window.addEventListener('scroll', () => {
+    if (window.scrollY > 300) {
+      backToTop.classList.add('visible');
+    } else {
+      backToTop.classList.remove('visible');
+    }
+  });
+
+  backToTop.addEventListener('click', (e) => {
+    e.preventDefault();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('.sidebar a');
+
+  function updateActiveNav() {
+    const scrollY = window.scrollY + 200;
+    sections.forEach(section => {
+      const top = section.offsetTop;
+      const height = section.offsetHeight;
+      const id = section.getAttribute('id');
+      const link = document.querySelector(`.sidebar a[href="#${id}"]`);
+      if (scrollY >= top && scrollY < top + height) {
+        navLinks.forEach(l => l.classList.remove('active'));
+        if (link) link.classList.add('active');
+      }
+    });
+  }
+
+  window.addEventListener('scroll', updateActiveNav);
+
+  document.querySelectorAll('.sidebar a').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+      e.preventDefault();
+      const target = document.querySelector(this.getAttribute('href'));
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth' });
+      }
+    });
+  });
+</script>
+
+</body>
+</html>

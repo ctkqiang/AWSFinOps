@@ -1,12 +1,14 @@
 package worker
 
 import (
+	"aws_fin_ops/internal/archive"
 	"aws_fin_ops/internal/billing"
 	"aws_fin_ops/internal/services"
 	"aws_fin_ops/internal/utilities"
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -590,6 +592,9 @@ func (e *Engine) exportReport(report *WorkerReport) {
 		AWSAccountID: e.config.AWSAccountID,
 	}
 
+	// 先收集旧报告文件，归档到 S3 Glacier 后再清理
+	archiveOldReports(e.config.ReportOutputDir)
+
 	paths, err := utilities.ExportAll(data, cfg)
 	if err != nil {
 		utilities.LogWarn(component, "ExportReport",
@@ -673,4 +678,73 @@ func resolveAWSAccountID() string {
 		return v
 	}
 	return ""
+}
+
+// archiveOldReports 收集指定目录中的旧报告文件，先归档到 S3 Glacier，
+// 然后由 ExportAll 内部的清理逻辑删除本地文件。
+// 如果 S3 归档未配置或失败，直接跳过，不影响后续流程。
+//
+// 参数：
+//   - outputDir : 报告输出目录
+func archiveOldReports(outputDir string) {
+	start := time.Now()
+
+	archiveCfg := archive.LoadConfig()
+	if archiveCfg == nil {
+		utilities.LogProgress(component, "archiveOldReports",
+			"S3 归档未配置，跳过（直接清理旧文件）",
+		)
+		return
+	}
+
+	// 收集目录中的旧报告文件
+	var oldFiles []string
+	entries, err := os.ReadDir(outputDir)
+	if err != nil {
+		utilities.LogWarn(component, "archiveOldReports",
+			fmt.Sprintf("读取目录失败，跳过归档: %v", err),
+			time.Since(start),
+		)
+		return
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		if strings.HasPrefix(name, "finops_report_") &&
+			(strings.HasSuffix(name, ".pdf") ||
+				strings.HasSuffix(name, ".json") ||
+				strings.HasSuffix(name, ".csv")) {
+			oldFiles = append(oldFiles, filepath.Join(outputDir, name))
+		}
+	}
+
+	if len(oldFiles) == 0 {
+		utilities.LogProgress(component, "archiveOldReports",
+			"没有旧报告文件需要归档",
+		)
+		return
+	}
+
+	utilities.LogProgress(component, "archiveOldReports",
+		fmt.Sprintf("找到 %d 个旧报告文件，正在归档到 S3 Glacier", len(oldFiles)),
+		fmt.Sprintf("bucket=%s", archiveCfg.Bucket),
+	)
+
+	archived, err := archive.ArchiveFiles(archiveCfg, oldFiles)
+	if err != nil {
+		utilities.LogWarn(component, "archiveOldReports",
+			fmt.Sprintf("S3 归档失败: %v", err),
+			time.Since(start),
+		)
+		return
+	}
+
+	utilities.LogSuccess(component, "archiveOldReports", time.Since(start),
+		fmt.Sprintf("total=%d", len(oldFiles)),
+		fmt.Sprintf("archived=%d", len(archived)),
+		fmt.Sprintf("bucket=%s", archiveCfg.Bucket),
+	)
 }

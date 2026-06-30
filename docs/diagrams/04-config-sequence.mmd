@@ -1,0 +1,31 @@
+sequenceDiagram
+    participant M as main.go
+    participant C as LoadConfig()
+    participant DOTENV as .env (本地)
+    participant S3 as S3 .env 文件
+    participant SM as Secrets Manager
+    participant ENV as 系统环境变量
+
+    M->>C: LoadConfig(ctx)
+    C->>C: 检测运行环境
+    alt 本地模式
+        C->>DOTENV: godotenv.Load()
+        DOTENV-->>C: 返回键值对
+        C->>ENV: 合并 os.Getenv
+    else AWS Lambda 模式
+        C->>S3: 尝试 S3_ENV_BUCKET + S3_ENV_KEY
+        alt 配置存在
+            S3-->>C: 返回 .env 内容
+            C->>ENV: 注入环境变量
+        else 未配置
+            C->>SM: 尝试 SECRET_ARN / SECRET_NAME
+            alt 配置存在
+                SM-->>C: 返回 JSON 密钥
+                C->>ENV: 注入环境变量
+            else 未配置
+                Note over C,ENV: 回退到 Lambda IAM 注入的环境变量
+            end
+        end
+    end
+    C->>C: 校验 requiredKeys
+    C-->>M: 返回 error / nil

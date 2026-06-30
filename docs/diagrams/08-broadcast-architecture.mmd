@@ -1,0 +1,24 @@
+graph TB
+    subgraph "BroadcastReport()"
+        DETECT[detectEnabledPlatforms<br/>自动检测已配置平台]
+        MSG[buildReportMessage<br/>构建统一消息文本]
+    end
+
+    subgraph "支持平台"
+        WX[企业微信<br/>Weixin]
+        FEISHU[飞书<br/>Feishu]
+        DD[钉钉<br/>DingDing]
+        EMAIL[Email<br/>SMTP + 附件]
+        SLACK[Slack<br/>Bot Token]
+        TG[Telegram<br/>Bot API]
+        DC[Discord<br/>Webhook]
+    end
+
+    DETECT --> MSG
+    MSG --> WX
+    MSG --> FEISHU
+    MSG --> DD
+    MSG --> EMAIL
+    MSG --> SLACK
+    MSG --> TG
+    MSG --> DC

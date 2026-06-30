@@ -1,0 +1,30 @@
+graph TB
+    subgraph "AWS 账户"
+        subgraph "EventBridge"
+            EB[规则: FinOps-Schedule<br/>cron: 0 */6 * * ? *]
+        end
+
+        subgraph "Lambda"
+            LAMBDA[AWSFinOps-Worker<br/>Go 1.x Runtime]
+        end
+
+        subgraph "S3"
+            S3ENV[配置 Bucket<br/>.env 文件]
+            S3ARCHIVE[归档 Bucket<br/>Glacier 存储]
+        end
+
+        subgraph "Secrets Manager"
+            SM[密钥<br/>敏感配置]
+        end
+
+        subgraph "CloudWatch"
+            CW_LOGS[日志组<br/>/aws/lambda/FinOps-Worker]
+            CW_METRICS[指标<br/>EMF 格式解析]
+        end
+    end
+
+    EB -->|触发| LAMBDA
+    LAMBDA -->|读取配置| S3ENV
+    LAMBDA -->|读取密钥| SM
+    LAMBDA -->|写入日志| CW_LOGS
+    LAMBDA -->|归档报告| S3ARCHIVE

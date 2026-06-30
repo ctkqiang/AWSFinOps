@@ -1,0 +1,14 @@
+graph LR
+    main[main.go] --> internal[internal/config.go]
+    main --> worker[internal/worker]
+    main --> billing[internal/billing]
+    main --> utilities[internal/utilities]
+    worker --> archive[internal/archive]
+    worker --> services[internal/services]
+    worker --> billing
+    worker --> utilities
+    services --> utilities
+    archive --> utilities
+    internal --> utilities
+    billing --> utilities
+    utilities --> awslib[internal/utilities/aws.go]
