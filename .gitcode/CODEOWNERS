@@ -1,0 +1,109 @@
+# CODEOWNERS for AWSFinOps
+# This file defines code ownership and required reviewers for pull requests.
+#
+# When a PR modifies files matching these patterns, the specified owners
+# are automatically requested as reviewers (REQUIRED for merge).
+#
+# Format: <path/pattern> <@owner1> <@owner2>
+
+# ===========================
+# Global Defaults
+# ===========================
+* @ctkqiang_sr
+
+# ===========================
+# Entry Point
+# ===========================
+/main.go @ctkqiang_sr
+/main_test.go @ctkqiang_sr
+/go.mod @ctkqiang_sr
+/go.sum @ctkqiang_sr
+
+# ===========================
+# Worker Engine
+# ===========================
+/internal/worker/engine.go @ctkqiang_sr
+
+# ===========================
+# Configuration
+# ===========================
+/internal/config.go @ctkqiang_sr
+
+# ===========================
+# AWS SDK Layer
+# ===========================
+/internal/aws/ @ctkqiang_sr
+/internal/aws/lambda.go @ctkqiang_sr
+/internal/aws/costexplorer.go @ctkqiang_sr
+/internal/aws/rightsizing.go @ctkqiang_sr
+/internal/aws/budget.go @ctkqiang_sr
+/internal/aws/billing.go @ctkqiang_sr
+/internal/aws/ec2.go @ctkqiang_sr
+/internal/aws/ecs.go @ctkqiang_sr
+/internal/aws/s3.go @ctkqiang_sr
+
+# ===========================
+# Billing & Analysis
+# ===========================
+/internal/billing/ @ctkqiang_sr
+/internal/billing/budget.go @ctkqiang_sr
+/internal/billing/budget_management.go @ctkqiang_sr
+/internal/billing/analysis.go @ctkqiang_sr
+
+# ===========================
+# Archive
+# ===========================
+/internal/archive/ @ctkqiang_sr
+/internal/archive/s3.go @ctkqiang_sr
+
+# ===========================
+# Services
+# ===========================
+/internal/services/ @ctkqiang_sr
+/internal/services/broadcast.go @ctkqiang_sr
+/internal/services/handler.go @ctkqiang_sr
+
+# ===========================
+# Utilities
+# ===========================
+/internal/utilities/ @ctkqiang_sr
+/internal/utilities/logger.go @ctkqiang_sr
+/internal/utilities/document.go @ctkqiang_sr
+/internal/utilities/aws.go @ctkqiang_sr
+
+# ===========================
+# Testing
+# ===========================
+/test/ @ctkqiang_sr
+/test/handler_test.go @ctkqiang_sr
+/test/server_test.go @ctkqiang_sr
+/test/budget_test.go @ctkqiang_sr
+/test/broadcast_test.go @ctkqiang_sr
+/test/config_test.go @ctkqiang_sr
+
+# ===========================
+# CI-CD Workflows
+# ===========================
+/.gitcode/workflows/ @ctkqiang_sr
+
+# ===========================
+# Documentation
+# ===========================
+*.md @ctkqiang_sr
+/README.md @ctkqiang_sr
+/docs/ @ctkqiang_sr
+/docs/diagrams/ @ctkqiang_sr
+
+# ===========================
+# Configuration Files
+# ===========================
+/.gitignore @ctkqiang_sr
+/.env.example @ctkqiang_sr
+
+# ===========================
+# Security & Compliance
+# ===========================
+/LICENSE @ctkqiang_sr
+/.gitcode/CODEOWNERS @ctkqiang_sr
+
+# MIT License - Copyright (c) 2026 ctkqiang

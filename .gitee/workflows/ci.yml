@@ -1,0 +1,113 @@
+name: CI / 持续集成
+
+on:
+  push:
+    branches: [main, master]
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+  pull_request:
+    branches: [main, master]
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+
+permissions:
+  contents: read
+
+env:
+  GO_VERSION: '1.26'
+
+jobs:
+  build:
+    name: Build / 构建
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout / 检出代码
+        uses: actions/checkout@v4
+
+      - name: Set up Go / 配置 Go 环境
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Download dependencies / 下载依赖
+        run: go mod download
+
+      - name: Verify dependencies / 验证依赖完整性
+        run: go mod verify
+
+      - name: Build (linux/amd64) / 构建 Linux 二进制
+        run: |
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 \
+            go build -trimpath -ldflags="-s -w" -o /dev/null .
+
+      - name: Build (linux/arm64) / 构建 ARM64 二进制
+        run: |
+          GOOS=linux GOARCH=arm64 CGO_ENABLED=0 \
+            go build -trimpath -ldflags="-s -w" -o /dev/null .
+
+  vet:
+    name: Vet / 静态检查
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout / 检出代码
+        uses: actions/checkout@v4
+
+      - name: Set up Go / 配置 Go 环境
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: go vet
+        run: go vet ./...
+
+  test:
+    name: Test / 单元测试
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout / 检出代码
+        uses: actions/checkout@v4
+
+      - name: Set up Go / 配置 Go 环境
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Download dependencies / 下载依赖
+        run: go mod download
+
+      - name: Run tests / 运行测试
+        run: |
+          go test -v -count=1 -timeout=120s ./test/...
+        env:
+          WORKER_ONCE: "true"
+          AWS_REGION: "ap-east-1"
+          BROADCAST_ENABLED: "false"
+          EXPORT_REPORT: "false"
+
+  security:
+    name: Security Scan / 安全扫描
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout / 检出代码
+        uses: actions/checkout@v4
+
+      - name: Set up Go / 配置 Go 环境
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Install gosec / 安装 gosec
+        run: go install github.com/securego/gosec/v2/cmd/gosec@latest
+
+      - name: Run gosec / 运行安全扫描
+        run: gosec ./...
